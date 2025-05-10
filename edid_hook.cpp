@@ -1,4 +1,5 @@
 #include <GameForms.h>
+#include <GameData.h>
 #include <obse_common/SafeWrite.h>
 #include <PluginAPI.h>
 #include "edid_hook.h"
@@ -65,6 +66,8 @@ void __stdcall TESForm_GetEditorID()
 	}
 }
 
+UInt32 (__cdecl* ResolveFormID)(UInt32* formID, ModEntry::Data* file)  = (UInt32 (__cdecl * )(UInt32*,  ModEntry::Data*))0x0046BB20;
+
 void (__cdecl* TESFullName_Load)(TESFullName*, UInt32*) = (void (__cdecl*)(TESFullName*, UInt32*))kTESFullNameLoad;
 
 static TESRace* currentRace;
@@ -79,10 +82,15 @@ void __cdecl TESFullNameHook(TESFullName* name, UInt32* unk01){
 //	_MESSAGE("FullName for  %s", currentForm->GetEditorName());
 
 }
-void __stdcall TESRace_OverrideVoice(TESRace* thisRace, TESRace* maleVoice, TESRace* femaleVoice){
-	putRaceVoiceOVerride(thisRace, maleVoice, femaleVoice);
+//While maleVoice and femaleVoice are technically forms, at this point they arent resolved so they are integers (values are still not resolve by mod id load order and so correspond to the value in the ESM/ESP)
+void __stdcall TESRace_OverrideVoice(TESRace* thisRace, ModEntry::Data* file,  UInt32 maleVoice, UInt32 femaleVoice){
+	/*Fixup form id with mod load order id*/
+	if(maleVoice) ResolveFormID(&maleVoice, file);
+	if(femaleVoice) ResolveFormID(&femaleVoice, file);
+	putRaceVoiceOVerride(thisRace, (TESRace*)maleVoice, (TESRace*)femaleVoice);
 	currentRace = nullptr;
-//	_MESSAGE("%s  %08X   %08X", thisRace->GetEditorName(), maleVoice, femaleVoice );
+//	if(thisRace)
+//		_MESSAGE("%s %08X  %s  %s  %08X  %08X" , thisRace->GetEditorName(), thisRace->refID, thisRace->GetEditorName(), file->name ,maleVoice, femaleVoice  );
 }
 
 void __declspec(naked) TESRace_OverrideVoiceHook()
@@ -92,6 +100,8 @@ void __declspec(naked) TESRace_OverrideVoiceHook()
 		pushad
 		push 	edx
 		push	ecx
+		mov eax, [ebp + 0x8]
+		push eax
 		push 	ebx
 		call TESRace_OverrideVoice
 		popad
@@ -132,6 +142,7 @@ void __declspec(naked) TESRace_NullOverride() {
 void __stdcall TESRace_Finalize(UInt32 eax) {
 	//Not sure why this is called more then once
 	if (currentRace && eax == 1) {
+//		_MESSAGE("%s %08X ", currentRace->GetEditorName(), currentRace->refID );
 //		_MESSAGE("It's the end of the line %u", eax);
 		putRaceVoiceOVerride(currentRace, nullptr, nullptr);
 		currentRace = nullptr;
