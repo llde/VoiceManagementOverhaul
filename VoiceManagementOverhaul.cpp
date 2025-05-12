@@ -133,6 +133,15 @@ static __declspec(naked) void HookCreateSoundString() {
 	}
 }
 
+//TODO: Add proper configuration
+//Races whose english name match the Edid won't be inserted.
+static void AddDefaultEnglishRaceNames(void){
+	putRaceOverride("HighElf" , "High Elf" );
+	putRaceOverride("WoodElf" , "Wood Elf" );
+	putRaceOverride("DarkElf" , "Dark Elf" );
+	putRaceOverride("GoldenSaint" , "Golden Saint" );
+	putRaceOverride("DarkSeducer" , "Dark Seducer" );
+}
 
 static UInt32* kBackgroundLoadLip = (UInt32*)0x00B1490C;
 static void EventMessageCallback(OBSEMessagingInterface::Message* msg) {
@@ -141,6 +150,7 @@ static void EventMessageCallback(OBSEMessagingInterface::Message* msg) {
 	case OBSEMessagingInterface::kMessage_GameInitialized:
 		MESSAGE_DEBUG("Fixups Race Voice Overrides From GI");
 		*kBackgroundLoadLip = 0;  //Disable LipAsyncTask, force the setting, as jumping cause the subtitle to not appear. 
+		AddDefaultEnglishRaceNames();
 		//The original task seems to have an issue where redirected hello (except changing only the race field apparently) doesn't play
 		ApplyTransform([](TESRace* refID) { return (TESRace*) LookupFormByID((UInt32)refID); });
 		printMap();
@@ -158,8 +168,9 @@ static void TaskFunction() {
 	static bool DoOnce = 0;
 	if (DoOnce == 0) {
 		MESSAGE_DEBUG("Fixups Race Voice Overrides From Task");
-		ApplyTransform([](TESRace* refID) { return (TESRace*)LookupFormByID((UInt32)refID); });
 		*kBackgroundLoadLip = 0;
+		AddDefaultEnglishRaceNames();
+		ApplyTransform([](TESRace* refID) { return (TESRace*)LookupFormByID((UInt32)refID); });
 		printMap();
 		DoOnce = 1;
 	}
@@ -169,12 +180,12 @@ extern "C" {
 
 	bool OBSEPlugin_Query(const OBSEInterface * obse, PluginInfo * info)
 	{
-		_MESSAGE("%s: OBSE calling plugin's Query function. <v1.2.6>", completeName.c_str());
+		_MESSAGE("%s: OBSE calling plugin's Query function. <v1.2.7>", completeName.c_str());
 
 		// fill out the info structure
 		info->infoVersion = PluginInfo::kInfoVersion;
 		info->name = name.c_str();
-		info->version = MAKE_OBLIVION_VERSION(1,2,6);
+		info->version = MAKE_OBLIVION_VERSION(1,2,7);
 		g_pluginHandle = obse->GetPluginHandle();
 
 		// version checks
