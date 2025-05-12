@@ -169,12 +169,12 @@ extern "C" {
 
 	bool OBSEPlugin_Query(const OBSEInterface * obse, PluginInfo * info)
 	{
-		_MESSAGE("%s: OBSE calling plugin's Query function. <v1.2.5>", completeName.c_str());
+		_MESSAGE("%s: OBSE calling plugin's Query function. <v1.2.6>", completeName.c_str());
 
 		// fill out the info structure
 		info->infoVersion = PluginInfo::kInfoVersion;
 		info->name = name.c_str();
-		info->version = MAKE_OBLIVION_VERSION(1,2,5);
+		info->version = MAKE_OBLIVION_VERSION(1,2,6);
 		g_pluginHandle = obse->GetPluginHandle();
 
 		// version checks

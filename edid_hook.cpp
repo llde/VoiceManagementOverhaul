@@ -68,17 +68,19 @@ void __stdcall TESForm_GetEditorID()
 
 UInt32 (__cdecl* ResolveFormID)(UInt32* formID, ModEntry::Data* file)  = (UInt32 (__cdecl * )(UInt32*,  ModEntry::Data*))0x0046BB20;
 
-void (__cdecl* TESFullName_Load)(TESFullName*, UInt32*) = (void (__cdecl*)(TESFullName*, UInt32*))kTESFullNameLoad;
+void (__cdecl* TESFullName_Load)(TESFullName*, ModEntry::Data*) = (void (__cdecl*)(TESFullName*, ModEntry::Data*))kTESFullNameLoad;
 
 static TESRace* currentRace;
-void __cdecl TESFullNameHook(TESFullName* name, UInt32* unk01){
+void __cdecl TESFullNameHook(TESFullName* name, ModEntry::Data* file){
 	TESRace* currentForm;
 	__asm {
 		mov currentForm, ebx
 	}
-	TESFullName_Load(name, unk01);
-	putRaceOverride(currentForm->GetEditorName(), name->name.m_data);
-	currentRace = currentForm;
+	TESFullName_Load(name, file); /*If FULL records exist but are empty the BSString get a null pointer m_data*/
+	if(name->name.m_data){
+		putRaceOverride(currentForm->GetEditorName(),  name->name.m_data);
+		currentRace = currentForm;
+	}
 //	_MESSAGE("FullName for  %s", currentForm->GetEditorName());
 
 }
@@ -89,8 +91,14 @@ void __stdcall TESRace_OverrideVoice(TESRace* thisRace, ModEntry::Data* file,  U
 	if(femaleVoice) ResolveFormID(&femaleVoice, file);
 	putRaceVoiceOVerride(thisRace, (TESRace*)maleVoice, (TESRace*)femaleVoice);
 	currentRace = nullptr;
-//	if(thisRace)
-//		_MESSAGE("%s %08X  %s  %s  %08X  %08X" , thisRace->GetEditorName(), thisRace->refID, thisRace->GetEditorName(), file->name ,maleVoice, femaleVoice  );
+	/*if(thisRace && thisRace->GetEditorName())
+		_MESSAGE("%s %08X  %s  %08X  %08X" , thisRace->GetEditorName(), thisRace->refID, file->name ,maleVoice, femaleVoice  );
+	else if(thisRace){
+		_MESSAGE("<NULL> %08X  %s  %08X  %08X" , thisRace->refID, file->name ,maleVoice, femaleVoice  );
+	}
+	else {
+		_MESSAGE("NULL this Race in %s", file->name);
+	}*/
 }
 
 void __declspec(naked) TESRace_OverrideVoiceHook()
