@@ -79,10 +79,10 @@ bool replacePathComponent(Component path_component, const char* input, const cha
 	return true;
 }
 
-
+/*
 void appendToPath(char* string, const char* app) {
 	strcat(string, app);
-}
+}*/
 
 void removeExtension(char* string1) {
 	for (size_t i = (strlen(string1) - 1); i >= 0; i--) {
