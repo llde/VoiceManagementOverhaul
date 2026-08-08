@@ -33,8 +33,9 @@ std::map<UInt32, const char*>	FormIDReferenceMap;
 
 
 void __stdcall SetEditorID(TESForm* form, const char* EditorID){
-	char* edid = (char*) FormHeap_Allocate(strlen(EditorID) + 1);
-	strcpy(edid, EditorID);
+	size_t newBufferSize = strlen(EditorID) + 1;
+	char* edid = (char*) FormHeap_Allocate(newBufferSize);
+	strcpy_s(edid, newBufferSize ,EditorID);
 	const char* old_edid =  FormIDReferenceMap[form->refID]; 
 	FormIDReferenceMap[form->refID] = edid;
 	if(old_edid) FormHeap_Free((void*)old_edid);
@@ -168,6 +169,7 @@ void __declspec(naked) TESRace_EndHook() {
 		jmp [kRetn]
 	}
 }
+#define TESFORM_GetEditorIDVanilla 0x004129A0
 
 void ApplyEdidHooks(const OBSEInterface* obse){
 	if(obse->GetPluginLoaded("REID")){
@@ -184,10 +186,12 @@ void ApplyEdidHooks(const OBSEInterface* obse){
 	}
 	else{
 		_MESSAGE("No EDID plugin found, install own hooks.");
-		UInt32 PatchAddressGet = g_VTBLTableNoREID[0].Address + kTESForm_GetEditorID_VTBLOffset;
-		UInt32 PatchAddress = g_VTBLTableNoREID[0].Address + kTESForm_SetEditorID_VTBLOffset;
-		SafeWrite32(PatchAddressGet, (UInt32)TESForm_GetEditorID);
-		SafeWrite32(PatchAddress,    (UInt32)TESForm_SetEditorID);
+		for (UInt32 i = 0; i < VTBLTableSizeNoREID; i++) {
+			UInt32 PatchAddressGet = g_VTBLTableNoREID[i].Address + kTESForm_GetEditorID_VTBLOffset;
+			UInt32 PatchAddress = g_VTBLTableNoREID[i].Address + kTESForm_SetEditorID_VTBLOffset;
+			SafeWrite32(PatchAddressGet, (UInt32)TESForm_GetEditorID);
+			SafeWrite32(PatchAddress, (UInt32)TESForm_SetEditorID);
+		}
 	}
 	WriteRelCall(kTESRaceFullNameLoad1, (UInt32)&TESFullNameHook);
 	WriteRelJump(kTESRaceVoiceOverrideJump, (UInt32)&TESRace_OverrideVoiceHook);

@@ -86,9 +86,10 @@ const VTBLData g_VTBLTableREID[VTBLTableSizeREID] =
 	{ 0x00A710F4, "Creature" }
 };
 
-const UInt32 VTBLTableSizeNoREID = 1;
+const UInt32 VTBLTableSizeNoREID = 2;
 const VTBLData g_VTBLTableNoREID[VTBLTableSizeNoREID] = {
-	{ 0x00A548FC, "TESRace" }	
+	{ 0x00A548FC, "TESRace" },
+	{ 0x00A53DD4, "TESNPC" }
 };
 
 void ApplyEdidHooks(const OBSEInterface* obse); 
