@@ -13,10 +13,13 @@ REIDInteropData* msg = new REIDInteropData();
 
 const char* __stdcall DispatchREIDMessage(TESForm* form){
 	msg->FormID = form->refID;
-	g_msgIntfc->Dispatch(g_pluginHandle, 'EDID' , msg , sizeof(REIDInteropData) ,"REID");
-	if (msg->HasEditorID) {
+	bool dis = g_msgIntfc->Dispatch(g_pluginHandle, 'EDID' , msg , sizeof(REIDInteropData) ,"REID");
+	if (!dis) _MESSAGE("Dispatch failed");
+	if (dis && msg->HasEditorID) {
+//		_MESSAGE("EDID found for  %08X %s %s", form, msg->EditorIDBuffer, form->GetFullName() ? form->GetFullName()->name.m_data : "<no name>");
 		return msg->EditorIDBuffer;
 	}
+//	_MESSAGE("Non EDID found for  %08X  %s", form, form->GetFullName() ? form->GetFullName()->name.m_data: "<no name>");
 	return "";
 }
 
@@ -82,7 +85,7 @@ void __cdecl TESFullNameHook(TESFullName* name, ModEntry::Data* file){
 		putRaceOverride(currentForm->GetEditorName(),  name->name.m_data);
 		currentRace = currentForm;
 	}
-//	_MESSAGE("FullName for  %s", currentForm->GetEditorName());
+//	_MESSAGE("FullName for  %s : %s", currentForm->GetEditorName(), name->name.m_data);
 
 }
 //While maleVoice and femaleVoice are technically forms, at this point they arent resolved so they are integers (values are still not resolve by mod id load order and so correspond to the value in the ESM/ESP)
@@ -170,18 +173,27 @@ void __declspec(naked) TESRace_EndHook() {
 	}
 }
 #define TESFORM_GetEditorIDVanilla 0x004129A0
-
+const unsigned char* ReturnEmptyStringFirstByte = reinterpret_cast<const unsigned char*>(0x004129A0);
 void ApplyEdidHooks(const OBSEInterface* obse){
+	bool isMessageLoggerLoaded = obse->GetPluginLoaded("MessageLogger");
 	if(obse->GetPluginLoaded("REID")){
-		_MESSAGE("Detected REID. Apply Messaging interop");
-		g_msgIntfc = (OBSEMessagingInterface*)obse->QueryInterface(kInterface_Messaging);
-		if(!g_msgIntfc) _MESSAGE("[ERROR] Cannot get Messaging Interface from OBSE");
-		for(UInt32 i = 0; i < VTBLTableSizeREID; i++){
-			UInt32 PatchAddressGet = g_VTBLTableREID[i].Address + kTESForm_GetEditorID_VTBLOffset;
-			SafeWrite32(PatchAddressGet, (UInt32)TESForm_GetEditorIDREID);
+		_MESSAGE("%d   %c", *ReturnEmptyStringFirstByte, *ReturnEmptyStringFirstByte);
+		if (*ReturnEmptyStringFirstByte != 0xB8) {
+			_MESSAGE("Detected EditorIdMapper");
+		}
+		else {
+			_MESSAGE("Detected REID, applying Message Interop");
+			g_msgIntfc = (OBSEMessagingInterface*)obse->QueryInterface(kInterface_Messaging);
+			if (!g_msgIntfc) _MESSAGE("[ERROR] Cannot get Messaging Interface from OBSE");
+			for (UInt32 i = 0; i < VTBLTableSizeREID; i++) {
+				UInt32 PatchAddressGet = g_VTBLTableREID[i].Address + kTESForm_GetEditorID_VTBLOffset;
+				if (*(UInt32*)PatchAddressGet == TESFORM_GetEditorIDVanilla) {
+					SafeWrite32(PatchAddressGet, (UInt32)TESForm_GetEditorIDREID);
+				}
+			}
 		}
 	}
-	else if(obse->GetPluginLoaded("MessageLogger")){
+	else if(isMessageLoggerLoaded){
 		_MESSAGE("Detected MessageLogger. Do nothing");
 	}
 	else{
